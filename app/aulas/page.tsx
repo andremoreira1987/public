@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function Aulas() {
-  const [foto, setFoto] = useState("/perfil-padrao.png");
+  const { usuario, carregando } = useAuth();
+  const router = useRouter();
+  const foto = usuario?.foto_perfil || "/perfil-padrao.png";
   const ritmos = ["Forró"]; // apenas Forró disponível por enquanto
 
   // Dados mock de progresso por nível
@@ -16,9 +20,18 @@ export default function Aulas() {
   };
 
   useEffect(() => {
-    const salva = localStorage.getItem("fotoPerfil");
-    if (salva) setFoto(salva);
-  }, []);
+    if (!carregando && !usuario) {
+      router.push("/login");
+    }
+  }, [carregando, usuario, router]);
+
+  if (carregando || !usuario) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-black">
+        <p className="text-white">Carregando...</p>
+      </main>
+    );
+  }
 
   return (
     <main

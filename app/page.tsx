@@ -1,19 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useAuth } from "@/lib/AuthContext";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Home() {
-  const [foto, setFoto] = useState("/perfil-padrao.png");
-  const nome = "João"; // depois vem do perfil/banco
-  const streak = 7;
-  const ritmos = ["Forró"]; // apenas Forró disponível
+  const { usuario, carregando } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
-    const salva = localStorage.getItem("fotoPerfil");
-    if (salva) setFoto(salva);
-  }, []);
+    if (!carregando && !usuario) {
+      router.push("/login");
+    }
+  }, [carregando, usuario, router]);
+
+  const foto = usuario?.foto_perfil || "/perfil-padrao.png";
+  const nome = usuario?.nome || "Visitante";
+  const streak = usuario?.streak ?? 0;
+  const ritmos = ["Forró"]; // apenas Forró disponível
 
   // Aulas filtradas - apenas conteúdo de Forró
   const aulas = [
@@ -27,6 +33,17 @@ export default function Home() {
     if (progresso < 100) return { texto: "EM ANDAMENTO", cor: "#F6B40E" };
     return { texto: "CONCLUÍDO", cor: "#2E7D32" };
   };
+
+  if (carregando || !usuario) {
+    return (
+      <main
+        className="min-h-screen max-w-md mx-auto flex items-center justify-center"
+        style={{ background: "linear-gradient(180deg, #F6B40E 0%, #FBD15B 100%)" }}
+      >
+        <p className="text-black font-bold">Carregando...</p>
+      </main>
+    );
+  }
 
   return (
     <main
