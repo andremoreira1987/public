@@ -25,6 +25,12 @@ function extrairIdYoutube(url: string | null): string | null {
   return match ? match[1] : null;
 }
 
+// Verifica se é um link direto de vídeo (ex: Cloudinary) e não do YouTube
+function ehVideoDirecto(url: string | null): boolean {
+  if (!url) return false;
+  return !extrairIdYoutube(url) && /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url);
+}
+
 export default function Home() {
   const { usuario, carregando } = useAuth();
   const router = useRouter();
@@ -176,12 +182,13 @@ export default function Home() {
         {aulas.map((aula) => {
           const badge = getBadge(aula.progresso);
           const videoId = extrairIdYoutube(aula.video_url);
+          const videoDireto = ehVideoDirecto(aula.video_url);
           const capa = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
 
           return (
             <button
               key={aula.id}
-              onClick={() => videoId && setAulaAberta(aula)}
+              onClick={() => (videoId || videoDireto) && setAulaAberta(aula)}
               className="w-full text-left rounded-2xl shadow-xl mb-5 overflow-hidden active:scale-[0.97] transition"
             >
               {/* Thumbnail */}
@@ -264,13 +271,22 @@ export default function Home() {
               </button>
             </div>
             <div className="aspect-video rounded-xl overflow-hidden bg-black">
-              <iframe
-                className="w-full h-full"
-                src={`https://www.youtube.com/embed/${extrairIdYoutube(aulaAberta.video_url)}?autoplay=1`}
-                title={aulaAberta.titulo}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
+              {ehVideoDirecto(aulaAberta.video_url) ? (
+                <video
+                  className="w-full h-full"
+                  src={aulaAberta.video_url || ""}
+                  controls
+                  autoPlay
+                />
+              ) : (
+                <iframe
+                  className="w-full h-full"
+                  src={`https://www.youtube.com/embed/${extrairIdYoutube(aulaAberta.video_url)}?autoplay=1`}
+                  title={aulaAberta.titulo}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              )}
             </div>
           </div>
         </div>

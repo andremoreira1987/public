@@ -110,6 +110,7 @@ export default function Iniciante() {
         {aulas.map((aula) => {
           const badge = getBadge(aula.progresso);
           const videoId = extrairIdYoutube(aula.video_url || "");
+          const isVideoDireto = !videoId && !!aula.video_url;
           const thumbnail = videoId
             ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
             : null;
@@ -117,8 +118,8 @@ export default function Iniciante() {
           return (
             <button
               key={aula.id}
-              onClick={() => videoId && setAulaAberta(aula)}
-              disabled={!videoId}
+              onClick={() => (videoId || isVideoDireto) && setAulaAberta(aula)}
+              disabled={!videoId && !isVideoDireto}
               className="w-full text-left rounded-2xl shadow-xl mb-5 overflow-hidden active:scale-[0.97] transition disabled:opacity-70"
             >
               {/* Thumbnail */}
@@ -138,7 +139,7 @@ export default function Iniciante() {
                   {badge.texto}
                 </span>
 
-                {!videoId && (
+                {!videoId && !isVideoDireto && (
                   <span className="absolute top-2 right-2 text-[10px] font-bold text-white px-2 py-1 rounded-full bg-zinc-700">
                     SEM VÍDEO
                   </span>
@@ -194,13 +195,22 @@ export default function Iniciante() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="relative" style={{ paddingTop: "56.25%" }}>
-              <iframe
-                src={`https://www.youtube.com/embed/${extrairIdYoutube(aulaAberta.video_url || "")}?autoplay=1`}
-                title={aulaAberta.titulo}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="absolute top-0 left-0 w-full h-full"
-              />
+              {extrairIdYoutube(aulaAberta.video_url || "") ? (
+                <iframe
+                  src={`https://www.youtube.com/embed/${extrairIdYoutube(aulaAberta.video_url || "")}?autoplay=1`}
+                  title={aulaAberta.titulo}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute top-0 left-0 w-full h-full"
+                />
+              ) : (
+                <video
+                  src={aulaAberta.video_url || ""}
+                  controls
+                  autoPlay
+                  className="absolute top-0 left-0 w-full h-full"
+                />
+              )}
             </div>
             <div className="p-4 flex items-center justify-between">
               <p className="text-white font-bold text-sm">{aulaAberta.titulo}</p>
