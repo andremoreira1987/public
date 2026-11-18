@@ -47,7 +47,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    // Checa sessão ativa ao carregar o app
     supabase.auth.getSession().then(({ data }) => {
       if (data.session?.user) {
         buscarPerfil(data.session.user.id).finally(() => setCarregando(false));
@@ -56,7 +55,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // Escuta mudanças de login/logout
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         buscarPerfil(session.user.id);
