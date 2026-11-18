@@ -12,14 +12,25 @@ type Aula = {
   titulo: string;
   duracao: string;
   ordem: number;
+  video_url: string | null;
   progresso: number; // vem da tabela "progresso", 0 se ainda não existir
 };
+
+// Extrai o ID do vídeo a partir de qualquer formato de link do YouTube
+function extrairIdYoutube(url: string | null): string | null {
+  if (!url) return null;
+  const match = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+  );
+  return match ? match[1] : null;
+}
 
 export default function Home() {
   const { usuario, carregando } = useAuth();
   const router = useRouter();
   const [aulas, setAulas] = useState<Aula[]>([]);
   const [carregandoAulas, setCarregandoAulas] = useState(true);
+  const [aulaAberta, setAulaAberta] = useState<Aula | null>(null);
 
   useEffect(() => {
     if (!carregando && !usuario) {
@@ -34,7 +45,7 @@ export default function Home() {
 
       const { data: aulasData, error: erroAulas } = await supabase
         .from("aulas")
-        .select("id, titulo, duracao, ordem")
+        .select("id, titulo, duracao, ordem, video_url")
         .eq("ritmo", "Forró")
         .eq("nivel", "iniciante")
         .order("ordem", { ascending: true })
@@ -164,25 +175,36 @@ export default function Home() {
 
         {aulas.map((aula) => {
           const badge = getBadge(aula.progresso);
+          const videoId = extrairIdYoutube(aula.video_url);
+          const capa = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+
           return (
-            <div
+            <button
               key={aula.id}
-              className="rounded-2xl shadow-xl mb-5 overflow-hidden active:scale-[0.97] transition"
+              onClick={() => videoId && setAulaAberta(aula)}
+              className="w-full text-left rounded-2xl shadow-xl mb-5 overflow-hidden active:scale-[0.97] transition"
             >
               {/* Thumbnail */}
               <div
-                className="h-32 flex items-center justify-center relative"
-                style={{ background: "linear-gradient(135deg, #C8102E 0%, #4A0E0E 60%, #1A1A1A 100%)" }}
+                className="h-32 flex items-center justify-center relative bg-cover bg-center"
+                style={{
+                  background: capa
+                    ? `url(${capa}) center/cover no-repeat`
+                    : "linear-gradient(135deg, #C8102E 0%, #4A0E0E 60%, #1A1A1A 100%)",
+                }}
               >
+                {/* Camada escura para legibilidade do badge/play */}
+                <div className="absolute inset-0 bg-black/25" />
+
                 {/* Badge de status */}
                 <span
-                  className="absolute top-2 left-2 text-[10px] font-bold text-white px-2 py-1 rounded-full tracking-wide"
+                  className="absolute top-2 left-2 z-10 text-[10px] font-bold text-white px-2 py-1 rounded-full tracking-wide"
                   style={{ backgroundColor: badge.cor }}
                 >
                   {badge.texto}
                 </span>
 
-                <div className="bg-white/20 rounded-full p-4 backdrop-blur-sm animate-pulse">
+                <div className="bg-white/20 rounded-full p-4 backdrop-blur-sm z-10">
                   <span className="text-white text-3xl">▶️</span>
                 </div>
               </div>
@@ -204,7 +226,7 @@ export default function Home() {
                   </span>
                 </div>
               </div>
-            </div>
+            </button>
           );
         })}
 
@@ -223,6 +245,36 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Modal do player */}
+      {aulaAberta && (
+        <div
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          onClick={() => setAulaAberta(null)}
+        >
+          <div className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-2">
+              <p className="text-white font-bold truncate pr-2">{aulaAberta.titulo}</p>
+              <button
+                onClick={() => setAulaAberta(null)}
+                className="text-white text-2xl leading-none shrink-0"
+                aria-label="Fechar"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="aspect-video rounded-xl overflow-hidden bg-black">
+              <iframe
+                className="w-full h-full"
+                src={`https://www.youtube.com/embed/${extrairIdYoutube(aulaAberta.video_url)}?autoplay=1`}
+                title={aulaAberta.titulo}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Menu inferior fixo */}
       <nav

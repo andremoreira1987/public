@@ -1,23 +1,24 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 export default function Aulas() {
   const { usuario, carregando } = useAuth();
   const router = useRouter();
   const foto = usuario?.foto_perfil || "/perfil-padrao.png";
-  const ritmos = ["Forró"]; // apenas Forró disponível por enquanto
+  const ritmos = ["Forró"];
 
-  // Dados mock de progresso por nível
-  const niveis = {
-    iniciante: { total: 12, completas: 8, progresso: 67 },
-    intermediario: { total: 6 },
-    avancado: { total: 5 },
-  };
+  const [niveis, setNiveis] = useState({
+    iniciante: { total: 0, completas: 0, progresso: 0 },
+    intermediario: { total: 0 },
+    avancado: { total: 0 },
+  });
+  const [carregandoNiveis, setCarregandoNiveis] = useState(true);
 
   useEffect(() => {
     if (!carregando && !usuario) {
@@ -25,7 +26,63 @@ export default function Aulas() {
     }
   }, [carregando, usuario, router]);
 
-  if (carregando || !usuario) {
+  useEffect(() => {
+    async function buscarNiveis() {
+      if (!usuario) return;
+
+      // Busca total de aulas por nível
+      const { data: aulasIniciante } = await supabase
+        .from("aulas")
+        .select("id")
+        .eq("ritmo", "Forró")
+        .eq("nivel", "iniciante");
+
+      const { data: aulasIntermediario } = await supabase
+        .from("aulas")
+        .select("id")
+        .eq("ritmo", "Forró")
+        .eq("nivel", "intermediario");
+
+      const { data: aulasAvancado } = await supabase
+        .from("aulas")
+        .select("id")
+        .eq("ritmo", "Forró")
+        .eq("nivel", "avancado");
+
+      const totalIniciante = aulasIniciante?.length ?? 0;
+      const idsIniciante = aulasIniciante?.map((a) => a.id) ?? [];
+
+      // Busca progresso do usuário nas aulas do nível iniciante
+      let completas = 0;
+      if (idsIniciante.length > 0) {
+        const { data: progressoData } = await supabase
+          .from("progresso")
+          .select("aula_id, percentual")
+          .eq("usuario_id", usuario.id)
+          .in("aula_id", idsIniciante);
+
+        completas = progressoData?.filter((p) => p.percentual === 100).length ?? 0;
+      }
+
+      const percentualGeral =
+        totalIniciante > 0 ? Math.round((completas / totalIniciante) * 100) : 0;
+
+      setNiveis({
+        iniciante: {
+          total: totalIniciante,
+          completas,
+          progresso: percentualGeral,
+        },
+        intermediario: { total: aulasIntermediario?.length ?? 0 },
+        avancado: { total: aulasAvancado?.length ?? 0 },
+      });
+      setCarregandoNiveis(false);
+    }
+
+    buscarNiveis();
+  }, [usuario]);
+
+  if (carregando || !usuario || carregandoNiveis) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-black">
         <p className="text-white">Carregando...</p>
