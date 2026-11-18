@@ -4,11 +4,22 @@ import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+
+type Aula = {
+  id: number;
+  titulo: string;
+  duracao: string;
+  ordem: number;
+  progresso: number; // vem da tabela "progresso", 0 se ainda não existir
+};
 
 export default function Home() {
   const { usuario, carregando } = useAuth();
   const router = useRouter();
+  const [aulas, setAulas] = useState<Aula[]>([]);
+  const [carregandoAulas, setCarregandoAulas] = useState(true);
 
   useEffect(() => {
     if (!carregando && !usuario) {
@@ -16,17 +27,49 @@ export default function Home() {
     }
   }, [carregando, usuario, router]);
 
+  // Busca aulas de Forró (nível iniciante) + progresso do usuário logado
+  useEffect(() => {
+    async function buscarAulas() {
+      if (!usuario) return;
+
+      const { data: aulasData, error: erroAulas } = await supabase
+        .from("aulas")
+        .select("id, titulo, duracao, ordem")
+        .eq("ritmo", "Forró")
+        .eq("nivel", "iniciante")
+        .order("ordem", { ascending: true })
+        .limit(3);
+
+      if (erroAulas) {
+        console.error("Erro ao buscar aulas:", erroAulas.message);
+        setCarregandoAulas(false);
+        return;
+      }
+
+      const { data: progressoData } = await supabase
+        .from("progresso")
+        .select("aula_id, percentual")
+        .eq("usuario_id", usuario.id);
+
+      const aulasComProgresso = (aulasData || []).map((aula) => {
+        const prog = progressoData?.find((p) => p.aula_id === aula.id);
+        return {
+          ...aula,
+          progresso: prog?.percentual ?? 0,
+        };
+      });
+
+      setAulas(aulasComProgresso);
+      setCarregandoAulas(false);
+    }
+
+    buscarAulas();
+  }, [usuario]);
+
   const foto = usuario?.foto_perfil || "/perfil-padrao.png";
   const nome = usuario?.nome || "Visitante";
   const streak = usuario?.streak ?? 0;
   const ritmos = ["Forró"]; // apenas Forró disponível
-
-  // Aulas filtradas - apenas conteúdo de Forró
-  const aulas = [
-    { titulo: "Forró básico - Passo 1", duracao: "15 min", progresso: 60 },
-    { titulo: "Forró básico - Passo 2", duracao: "18 min", progresso: 30 },
-    { titulo: "Forró universitário - Giro", duracao: "22 min", progresso: 0 },
-  ];
 
   const getBadge = (progresso: number) => {
     if (progresso === 0) return { texto: "NOVO", cor: "#C8102E" };
@@ -109,11 +152,21 @@ export default function Home() {
           🕺 Aulas de Forró em destaque
         </h2>
 
-        {aulas.map((aula, i) => {
+        {carregandoAulas && (
+          <p className="text-black text-sm mb-4">Carregando aulas...</p>
+        )}
+
+        {!carregandoAulas && aulas.length === 0 && (
+          <p className="text-black text-sm mb-4">
+            Nenhuma aula encontrada ainda. Cadastre aulas no Supabase para vê-las aqui.
+          </p>
+        )}
+
+        {aulas.map((aula) => {
           const badge = getBadge(aula.progresso);
           return (
             <div
-              key={i}
+              key={aula.id}
               className="rounded-2xl shadow-xl mb-5 overflow-hidden active:scale-[0.97] transition"
             >
               {/* Thumbnail */}
@@ -156,17 +209,19 @@ export default function Home() {
         })}
 
         {/* Card motivacional */}
-        <div
-          className="rounded-xl p-4 mb-2 text-center shadow-lg"
-          style={{ background: "linear-gradient(135deg, #C8102E 0%, #1A1A1A 100%)" }}
-        >
-          <p className="text-white font-bold text-sm">
-            🎉 Você está quase lá!
-          </p>
-          <p className="text-gray-300 text-xs mt-1">
-            Complete mais {aulas.filter((a) => a.progresso < 100).length} aulas para fechar o módulo
-          </p>
-        </div>
+        {aulas.length > 0 && (
+          <div
+            className="rounded-xl p-4 mb-2 text-center shadow-lg"
+            style={{ background: "linear-gradient(135deg, #C8102E 0%, #1A1A1A 100%)" }}
+          >
+            <p className="text-white font-bold text-sm">
+              🎉 Você está quase lá!
+            </p>
+            <p className="text-gray-300 text-xs mt-1">
+              Complete mais {aulas.filter((a) => a.progresso < 100).length} aulas para fechar o módulo
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Menu inferior fixo */}
