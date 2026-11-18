@@ -306,6 +306,9 @@ export default function Home() {
         <Link href="/perfil" className="text-sm font-semibold text-gray-400 flex items-center gap-1">
           👤 Perfil
         </Link>
+        <Link href="/planos" className="text-sm font-semibold text-gray-400 flex items-center gap-1">
+          ⭐ Planos
+        </Link>
       </nav>
     </main>
   );

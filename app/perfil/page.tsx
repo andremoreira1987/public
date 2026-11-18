@@ -121,6 +121,7 @@ export default function Perfil() {
 
   const nome = usuario?.nome || "Visitante";
   const email = usuario?.email || "—";
+  const plano = usuario?.plano === "vip" ? "vip" : "free";
   const nivel = usuario?.nivel_atual
     ? usuario.nivel_atual.charAt(0).toUpperCase() + usuario.nivel_atual.slice(1)
     : "Iniciante";
@@ -187,13 +188,28 @@ export default function Perfil() {
         <p className="text-gray-400 text-sm mt-1">{email}</p>
 
         <div className="flex gap-2 mt-4">
-          <span className="bg-[#C8102E] text-xs font-semibold px-3 py-1.5 rounded-full">
-            Plano Mensal
-          </span>
+          {plano === "vip" ? (
+            <span className="bg-gradient-to-r from-[#F6B40E] to-[#FBD15B] text-black text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1">
+              ⭐ Plano VIP
+            </span>
+          ) : (
+            <span className="bg-zinc-700 text-xs font-semibold px-3 py-1.5 rounded-full">
+              Plano Gratuito
+            </span>
+          )}
           <span className="bg-[#F6B40E] text-black text-xs font-bold px-3 py-1.5 rounded-full">
             {nivel}
           </span>
         </div>
+
+        {plano === "free" && (
+          <Link
+            href="/planos"
+            className="mt-4 text-xs font-bold text-[#F6B40E] hover:underline flex items-center gap-1"
+          >
+            🚀 Fazer upgrade para VIP
+          </Link>
+        )}
       </div>
 
       {/* Sequência de prática */}
@@ -288,6 +304,25 @@ export default function Perfil() {
           ))}
         </div>
       </div>
+
+      {/* Menu inferior fixo */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-black border-t flex justify-around py-4 z-10"
+        style={{ borderColor: "#C8102E" }}
+      >
+        <Link href="/" className="text-sm font-semibold text-gray-400 flex items-center gap-1">
+          🏠 Início
+        </Link>
+        <Link href="/aulas" className="text-sm font-semibold text-gray-400 flex items-center gap-1">
+          🎓 Aulas
+        </Link>
+        <Link href="/perfil" className="text-sm font-bold text-white flex items-center gap-1">
+          👤 Perfil
+        </Link>
+        <Link href="/planos" className="text-sm font-semibold text-gray-400 flex items-center gap-1">
+          ⭐ Planos
+        </Link>
+      </nav>
     </div>
   );
 }
