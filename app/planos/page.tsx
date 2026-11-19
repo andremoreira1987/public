@@ -194,20 +194,20 @@ export default function Planos() {
 
       {/* Menu inferior fixo */}
       <nav
-        className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-black border-t flex justify-around py-4 z-10"
+        className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-black border-t flex justify-around py-3 z-10"
         style={{ borderColor: "#C8102E" }}
       >
-        <Link href="/" className="text-sm font-semibold text-gray-400 flex items-center gap-1">
-          🏠 Início
+        <Link href="/" className="flex flex-col items-center gap-0.5 text-[11px] font-semibold text-gray-400">
+          <span className="text-lg">🏠</span>
+          Início
         </Link>
-        <Link href="/aulas" className="text-sm font-semibold text-gray-400 flex items-center gap-1">
-          🎓 Aulas
+        <Link href="/aulas" className="flex flex-col items-center gap-0.5 text-[11px] font-semibold text-gray-400">
+          <span className="text-lg">🎓</span>
+          Aulas
         </Link>
-        <Link href="/planos" className="text-sm font-bold text-white flex items-center gap-1">
-          ⭐ Planos
-        </Link>
-        <Link href="/perfil" className="text-sm font-semibold text-gray-400 flex items-center gap-1">
-          👤 Perfil
+        <Link href="/perfil" className="flex flex-col items-center gap-0.5 text-[11px] font-semibold text-gray-400">
+          <span className="text-lg">👤</span>
+          Perfil
         </Link>
       </nav>
     </main>

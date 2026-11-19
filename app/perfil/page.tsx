@@ -90,6 +90,11 @@ export default function Perfil() {
     buscarMinhasAulas();
   }, [usuario]);
 
+  async function handleSair() {
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
+
   async function handleFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !usuario) return;
@@ -154,7 +159,7 @@ export default function Perfil() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black text-white p-6 max-w-md mx-auto">
+    <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black text-white p-6 pb-28 max-w-md mx-auto">
       <Link
         href="/"
         className="inline-flex items-center gap-2 text-sm text-gray-300 hover:text-[#F6B40E] mb-8 transition-colors"
@@ -170,6 +175,7 @@ export default function Perfil() {
             alt="Foto de perfil"
             fill
             className="object-cover"
+            onError={() => setFotoPreview("/perfil-padrao.png")}
           />
         </div>
 
@@ -303,24 +309,31 @@ export default function Perfil() {
             </div>
           ))}
         </div>
+
+        <button
+          onClick={handleSair}
+          className="w-full mt-8 py-3 rounded-xl border border-red-600 text-red-500 font-bold hover:bg-red-600/10 transition-colors"
+        >
+          🚪 Sair da conta
+        </button>
       </div>
 
       {/* Menu inferior fixo */}
       <nav
-        className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-black border-t flex justify-around py-4 z-10"
+        className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-black border-t flex justify-around py-3 z-10"
         style={{ borderColor: "#C8102E" }}
       >
-        <Link href="/" className="text-sm font-semibold text-gray-400 flex items-center gap-1">
-          🏠 Início
+        <Link href="/" className="flex flex-col items-center gap-0.5 text-[11px] font-semibold text-gray-400">
+          <span className="text-lg">🏠</span>
+          Início
         </Link>
-        <Link href="/aulas" className="text-sm font-semibold text-gray-400 flex items-center gap-1">
-          🎓 Aulas
+        <Link href="/aulas" className="flex flex-col items-center gap-0.5 text-[11px] font-semibold text-gray-400">
+          <span className="text-lg">🎓</span>
+          Aulas
         </Link>
-        <Link href="/perfil" className="text-sm font-bold text-white flex items-center gap-1">
-          👤 Perfil
-        </Link>
-        <Link href="/planos" className="text-sm font-semibold text-gray-400 flex items-center gap-1">
-          ⭐ Planos
+        <Link href="/perfil" className="flex flex-col items-center gap-0.5 text-[11px] font-bold text-white">
+          <span className="text-lg">👤</span>
+          Perfil
         </Link>
       </nav>
     </div>

@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/lib/supabase";
 
 // Extrai o ID do vídeo de qualquer formato de link do YouTube
@@ -22,19 +24,25 @@ type Aula = {
 };
 
 export default function Iniciante() {
-  const [foto, setFoto] = useState("/perfil-padrao.png");
+  const { usuario, carregando: carregandoUsuario } = useAuth();
+  const router = useRouter();
+  const foto = usuario?.foto_perfil || "/perfil-padrao.png";
+
   const [aulas, setAulas] = useState<Aula[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [aulaAberta, setAulaAberta] = useState<Aula | null>(null);
 
   useEffect(() => {
-    const salva = localStorage.getItem("fotoPerfil");
-    if (salva) setFoto(salva);
-  }, []);
+    if (!carregandoUsuario && !usuario) {
+      router.push("/login");
+    }
+  }, [carregandoUsuario, usuario, router]);
 
   useEffect(() => {
     async function buscarAulas() {
-      const { data, error } = await supabase
+      if (!usuario?.id) return;
+
+      const { data: aulasData, error } = await supabase
         .from("aulas")
         .select("*")
         .eq("nivel", "iniciante")
@@ -43,19 +51,51 @@ export default function Iniciante() {
 
       if (error) {
         console.error("Erro ao buscar aulas:", error.message);
-      } else if (data) {
-        setAulas(data as Aula[]);
+        setCarregando(false);
+        return;
       }
+
+      const idsAulas = (aulasData || []).map((a) => a.id);
+
+      let progressoMap: Record<number, number> = {};
+      if (idsAulas.length > 0) {
+        const { data: progressoData } = await supabase
+          .from("progresso")
+          .select("aula_id, percentual")
+          .eq("usuario_id", usuario.id)
+          .in("aula_id", idsAulas);
+
+        progressoMap = (progressoData || []).reduce((acc, p) => {
+          acc[p.aula_id] = p.percentual;
+          return acc;
+        }, {} as Record<number, number>);
+      }
+
+      const aulasComProgresso = (aulasData || []).map((a) => ({
+        ...a,
+        progresso: progressoMap[a.id] ?? 0,
+      }));
+
+      setAulas(aulasComProgresso as Aula[]);
       setCarregando(false);
     }
+
     buscarAulas();
-  }, []);
+  }, [usuario]);
 
   const getBadge = (progresso: number = 0) => {
     if (progresso === 100) return { texto: "CONCLUÍDO", cor: "#2E7D32" };
     if (progresso === 0) return { texto: "NOVO", cor: "#C8102E" };
     return { texto: "EM ANDAMENTO", cor: "#F6B40E" };
   };
+
+  if (carregandoUsuario || !usuario) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-black">
+        <p className="text-white">Carregando...</p>
+      </main>
+    );
+  }
 
   return (
     <main
@@ -64,23 +104,39 @@ export default function Iniciante() {
     >
       {/* Topo fixo */}
       <header
-        className="bg-black p-3 fixed top-0 left-0 right-0 max-w-md mx-auto z-10 border-b-4 flex items-center justify-between gap-2"
+        className="h-16 bg-black px-3 fixed top-0 left-0 right-0 max-w-md mx-auto z-10 border-b-4 flex items-center justify-between gap-2"
         style={{ borderColor: "#C8102E" }}
       >
-        <div className="flex items-center gap-2">
-          <Image src="/logo.png" alt="Vixe Maria" width={36} height={36} className="rounded-full" />
-          <h1 className="text-lg font-extrabold text-white tracking-wide">NÍVEL INICIANTE</h1>
+        <div className="flex items-center gap-2 min-w-0">
+          <Image
+            src="/logo.png"
+            alt="Vixe Maria"
+            width={32}
+            height={32}
+            className="rounded-full shrink-0"
+          />
+          <h1 className="text-sm font-extrabold text-white tracking-wide truncate">
+            NÍVEL INICIANTE
+          </h1>
         </div>
 
         <Link
           href="/perfil"
           className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-[#F6B40E] shrink-0"
         >
-          <Image src={foto} alt="Perfil" fill className="object-cover" />
+          <Image
+            src={foto}
+            alt="Perfil"
+            fill
+            className="object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "/perfil-padrao.png";
+            }}
+          />
         </Link>
       </header>
 
-      <div className="pt-24 p-4">
+      <div className="pt-20 p-4">
         <Link href="/aulas" className="text-sm font-bold mb-4 inline-block text-black">
           ← Voltar
         </Link>
@@ -227,17 +283,17 @@ export default function Iniciante() {
 
       {/* Menu inferior fixo */}
       <nav
-        className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-black border-t flex justify-around py-4 z-10"
+        className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-black border-t flex justify-around py-3 z-10"
         style={{ borderColor: "#C8102E" }}
       >
-        <Link href="/" className="text-sm font-semibold text-gray-400 flex items-center gap-1">
-          🏠 Início
+        <Link href="/" className="flex flex-col items-center gap-0.5 text-[11px] font-semibold text-gray-400">
+          <span className="text-lg">🏠</span> Início
         </Link>
-        <Link href="/aulas" className="text-sm font-bold text-white flex items-center gap-1">
-          🎓 Aulas
+        <Link href="/aulas" className="flex flex-col items-center gap-0.5 text-[11px] font-bold text-white">
+          <span className="text-lg">🎓</span> Aulas
         </Link>
-        <Link href="/perfil" className="text-sm font-semibold text-gray-400 flex items-center gap-1">
-          👤 Perfil
+        <Link href="/perfil" className="flex flex-col items-center gap-0.5 text-[11px] font-semibold text-gray-400">
+          <span className="text-lg">👤</span> Perfil
         </Link>
       </nav>
     </main>

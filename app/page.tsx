@@ -37,12 +37,18 @@ export default function Home() {
   const [aulas, setAulas] = useState<Aula[]>([]);
   const [carregandoAulas, setCarregandoAulas] = useState(true);
   const [aulaAberta, setAulaAberta] = useState<Aula | null>(null);
+  const [erroFotoPerfil, setErroFotoPerfil] = useState(false);
 
   useEffect(() => {
     if (!carregando && !usuario) {
       router.push("/login");
     }
   }, [carregando, usuario, router]);
+
+  // Reseta o erro de foto sempre que o usuário/foto mudar
+  useEffect(() => {
+    setErroFotoPerfil(false);
+  }, [usuario?.foto_perfil]);
 
   // Busca aulas de Forró (nível iniciante) + progresso do usuário logado
   useEffect(() => {
@@ -83,8 +89,11 @@ export default function Home() {
     buscarAulas();
   }, [usuario]);
 
-  const foto = usuario?.foto_perfil || "/perfil-padrao.png";
+  // Só usa a foto do usuário se existir e não tiver dado erro ao carregar
+  const temFotoValida = !!usuario?.foto_perfil && !erroFotoPerfil;
+  const foto = temFotoValida ? usuario!.foto_perfil! : "/perfil-padrao.png";
   const nome = usuario?.nome || "Visitante";
+  const primeiroNome = nome.split(" ")[0];
   const streak = usuario?.streak ?? 0;
   const ritmos = ["Forró"]; // apenas Forró disponível
 
@@ -112,30 +121,44 @@ export default function Home() {
     >
       {/* Topo fixo */}
       <header
-        className="bg-black p-3 fixed top-0 left-0 right-0 max-w-md mx-auto z-10 border-b-4 flex items-center justify-between gap-2"
+        className="bg-black h-16 px-4 fixed top-0 left-0 right-0 max-w-md mx-auto z-10 border-b-4 flex items-center justify-between gap-2"
         style={{ borderColor: "#C8102E" }}
       >
-        <div className="flex items-center gap-2">
-          <Image src="/logo.png" alt="Vixe Maria" width={40} height={40} className="rounded-full" />
-          <h1 className="text-lg font-extrabold text-white tracking-wide">VIXE MARIA</h1>
+        <div className="flex items-center gap-2 min-w-0">
+          <Image
+            src="/logo.png"
+            alt="Vixe Maria"
+            width={34}
+            height={34}
+            className="rounded-full shrink-0"
+          />
+          <h1 className="text-base font-extrabold text-white tracking-wide truncate">
+            VIXE MARIA
+          </h1>
         </div>
 
         {/* Avatar do perfil - canto superior direito */}
         <Link
           href="/perfil"
-          className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-[#F6B40E] shrink-0"
+          className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-[#F6B40E] shrink-0 bg-zinc-800"
         >
-          <Image src={foto} alt="Perfil" fill className="object-cover" />
+          <Image
+            src={foto}
+            alt="Perfil"
+            fill
+            className="object-cover"
+            onError={() => setErroFotoPerfil(true)}
+          />
         </Link>
       </header>
 
       {/* Conteúdo */}
-      <div className="pt-24 p-4">
+      <div className="pt-20 p-4">
         {/* Saudação personalizada */}
-        <h2 className="text-xl font-extrabold text-black mb-1">
-          Bom treino, {nome}! 💪
+        <h2 className="text-lg font-extrabold text-black mb-1">
+          Bom treino, {primeiroNome}! 💪
         </h2>
-        <p className="text-sm text-black font-medium mb-4">
+        <p className="text-sm text-black/80 font-medium mb-4">
           Vamos evoluir mais um pouco no Forró hoje?
         </p>
 
@@ -165,7 +188,7 @@ export default function Home() {
         </div>
 
         {/* Aulas em destaque */}
-        <h2 className="text-lg font-bold mb-4 text-black flex items-center gap-1.5">
+        <h2 className="text-base font-bold mb-4 text-black flex items-center gap-1.5">
           🕺 Aulas de Forró em destaque
         </h2>
 
@@ -294,20 +317,20 @@ export default function Home() {
 
       {/* Menu inferior fixo */}
       <nav
-        className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-black border-t flex justify-around py-4 z-10"
+        className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-black border-t flex justify-around items-center py-3 z-10"
         style={{ borderColor: "#C8102E" }}
       >
-        <Link href="/" className="text-sm font-bold text-white flex items-center gap-1">
-          🏠 Início
+        <Link href="/" className="flex flex-col items-center gap-0.5 text-white">
+          <span className="text-xl leading-none">🏠</span>
+          <span className="text-[11px] font-bold leading-none">Início</span>
         </Link>
-        <Link href="/aulas" className="text-sm font-semibold text-gray-400 flex items-center gap-1">
-          🎓 Aulas
+        <Link href="/aulas" className="flex flex-col items-center gap-0.5 text-gray-400">
+          <span className="text-xl leading-none">🎓</span>
+          <span className="text-[11px] font-semibold leading-none">Aulas</span>
         </Link>
-        <Link href="/perfil" className="text-sm font-semibold text-gray-400 flex items-center gap-1">
-          👤 Perfil
-        </Link>
-        <Link href="/planos" className="text-sm font-semibold text-gray-400 flex items-center gap-1">
-          ⭐ Planos
+        <Link href="/perfil" className="flex flex-col items-center gap-0.5 text-gray-400">
+          <span className="text-xl leading-none">👤</span>
+          <span className="text-[11px] font-semibold leading-none">Perfil</span>
         </Link>
       </nav>
     </main>

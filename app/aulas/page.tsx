@@ -10,7 +10,8 @@ import { supabase } from "@/lib/supabase";
 export default function Aulas() {
   const { usuario, carregando } = useAuth();
   const router = useRouter();
-  const foto = usuario?.foto_perfil || "/perfil-padrao.png";
+  const [fotoErro, setFotoErro] = useState(false);
+  const foto = !fotoErro && usuario?.foto_perfil ? usuario.foto_perfil : "/perfil-padrao.png";
   const ritmos = ["Forró"];
 
   const [niveis, setNiveis] = useState({
@@ -28,7 +29,7 @@ export default function Aulas() {
 
   useEffect(() => {
     async function buscarNiveis() {
-      if (!usuario) return;
+      if (!usuario?.id) return;
 
       // Busca total de aulas por nível
       const { data: aulasIniciante } = await supabase
@@ -50,18 +51,26 @@ export default function Aulas() {
         .eq("nivel", "avancado");
 
       const totalIniciante = aulasIniciante?.length ?? 0;
-      const idsIniciante = aulasIniciante?.map((a) => a.id) ?? [];
+
+      // Remove ids nulos/indefinidos antes de usar no filtro (evita erro de bigint)
+      const idsIniciante = (aulasIniciante ?? [])
+        .map((a) => a.id)
+        .filter((id): id is number => id !== null && id !== undefined);
 
       // Busca progresso do usuário nas aulas do nível iniciante
       let completas = 0;
       if (idsIniciante.length > 0) {
-        const { data: progressoData } = await supabase
+        const { data: progressoData, error: erroProgresso } = await supabase
           .from("progresso")
           .select("aula_id, percentual")
           .eq("usuario_id", usuario.id)
           .in("aula_id", idsIniciante);
 
-        completas = progressoData?.filter((p) => p.percentual === 100).length ?? 0;
+        if (erroProgresso) {
+          console.error("Erro ao buscar progresso:", erroProgresso.message);
+        } else {
+          completas = progressoData?.filter((p) => p.percentual === 100).length ?? 0;
+        }
       }
 
       const percentualGeral =
@@ -97,24 +106,38 @@ export default function Aulas() {
     >
       {/* Topo fixo */}
       <header
-        className="bg-black p-3 fixed top-0 left-0 right-0 max-w-md mx-auto z-10 border-b-4 flex items-center justify-between gap-2"
+        className="bg-black h-16 px-3 fixed top-0 left-0 right-0 max-w-md mx-auto z-10 border-b-4 flex items-center justify-between gap-2"
         style={{ borderColor: "#C8102E" }}
       >
-        <div className="flex items-center gap-2">
-          <Image src="/logo.png" alt="Vixe Maria" width={40} height={40} className="rounded-full" />
-          <h1 className="text-lg font-extrabold text-white tracking-wide">AULAS</h1>
+        <div className="flex items-center gap-2 min-w-0">
+          <Image
+            src="/logo.png"
+            alt="Vixe Maria"
+            width={32}
+            height={32}
+            className="rounded-full shrink-0"
+          />
+          <h1 className="text-base font-extrabold text-white tracking-wide truncate">
+            AULAS
+          </h1>
         </div>
 
-        {/* Avatar do perfil - canto superior direito */}
+        {/* Avatar do perfil - canto superior direito, com fallback se a imagem falhar */}
         <Link
           href="/perfil"
           className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-[#F6B40E] shrink-0"
         >
-          <Image src={foto} alt="Perfil" fill className="object-cover" />
+          <Image
+            src={foto}
+            alt="Perfil"
+            fill
+            className="object-cover"
+            onError={() => setFotoErro(true)}
+          />
         </Link>
       </header>
 
-      <div className="pt-24 p-4">
+      <div className="pt-20 p-4">
         {/* Ritmos disponíveis - mesmo padrão da Home */}
         <h3 className="text-sm font-bold text-black mb-2">Ritmos disponíveis</h3>
         <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
@@ -245,20 +268,20 @@ export default function Aulas() {
 
       {/* Menu inferior fixo */}
       <nav
-        className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-black border-t flex justify-around py-4 z-10"
+        className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-black border-t flex justify-around py-3 z-10"
         style={{ borderColor: "#C8102E" }}
       >
-        <Link href="/" className="text-sm font-semibold text-gray-400 flex items-center gap-1">
-          🏠 Início
+        <Link href="/" className="flex flex-col items-center gap-0.5 text-gray-400">
+          <span className="text-lg">🏠</span>
+          <span className="text-[11px] font-semibold">Início</span>
         </Link>
-        <Link href="/aulas" className="text-sm font-bold text-white flex items-center gap-1">
-          🎓 Aulas
+        <Link href="/aulas" className="flex flex-col items-center gap-0.5 text-white">
+          <span className="text-lg">🎓</span>
+          <span className="text-[11px] font-bold">Aulas</span>
         </Link>
-        <Link href="/perfil" className="text-sm font-semibold text-gray-400 flex items-center gap-1">
-          👤 Perfil
-        </Link>
-        <Link href="/planos" className="text-sm font-semibold text-gray-400 flex items-center gap-1">
-          ⭐ Planos
+        <Link href="/perfil" className="flex flex-col items-center gap-0.5 text-gray-400">
+          <span className="text-lg">👤</span>
+          <span className="text-[11px] font-semibold">Perfil</span>
         </Link>
       </nav>
     </main>

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Vixe Maria</string>
+    <string name="title_activity_main">Vixe Maria</string>
+    <string name="package_name">com.vixemaria.app</string>
+    <string name="custom_url_scheme">com.vixemaria.app</string>
+</resources>
