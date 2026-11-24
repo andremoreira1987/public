@@ -5,11 +5,15 @@ import { useAuth } from "@/lib/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-// ⚠️ Link de checkout provisório — troque pela URL real do Stripe/Mercado Pago
-// quando a integração de pagamento for feita.
-const LINK_CHECKOUT_VIP = "https://checkout.exemplo.com/vixe-maria-vip";
-
 type Periodo = "mensal" | "semestral" | "anual";
+
+// Mapeia o período escolhido na tela para a chave de plano usada
+// na rota /api/checkout (ver artefato "checkout-route").
+const PLANO_POR_PERIODO: Record<Periodo, string> = {
+  mensal: "vip-mensal",
+  semestral: "vip-semestral",
+  anual: "vip-anual",
+};
 
 const PLANOS: Record<
   Periodo,
@@ -52,12 +56,38 @@ export default function Planos() {
   const planoAtual = usuario?.plano === "vip" ? "vip" : "free";
   const selecionado = PLANOS[periodo];
 
-  function handleAssinar() {
+  const [erro, setErro] = useState("");
+
+  async function handleAssinar() {
+    setErro("");
     setRedirecionando(true);
-    // Abre o checkout externo. Depois do pagamento confirmado,
-    // o gateway deve avisar o backend (webhook) pra atualizar
-    // usuarios.plano = 'vip' no Supabase.
-    window.location.href = `${LINK_CHECKOUT_VIP}?periodo=${periodo}`;
+
+    try {
+      const resposta = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          usuarioId: usuario?.id,
+          plano: PLANO_POR_PERIODO[periodo],
+        }),
+      });
+
+      const dados = await resposta.json();
+
+      if (!resposta.ok || !dados.linkPagamento) {
+        setErro("Não foi possível iniciar o pagamento. Tente novamente.");
+        setRedirecionando(false);
+        return;
+      }
+
+      // Redireciona para o checkout real do Mercado Pago.
+      // O webhook (app/api/webhook/mercadopago) atualiza
+      // usuarios.plano = 'vip' quando o pagamento for confirmado.
+      window.location.href = dados.linkPagamento;
+    } catch (err) {
+      setErro("Erro de conexão. Tente novamente.");
+      setRedirecionando(false);
+    }
   }
 
   if (carregando || !usuario) {
@@ -186,6 +216,12 @@ export default function Planos() {
             </button>
           )}
         </div>
+
+        {erro && (
+          <p className="text-[#C8102E] text-sm text-center mt-4 bg-black/10 rounded-lg px-3 py-2">
+            {erro}
+          </p>
+        )}
 
         <p className="text-xs text-black/70 text-center mt-5">
           Pagamento processado com segurança. Cancele quando quiser.

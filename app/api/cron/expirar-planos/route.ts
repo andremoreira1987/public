@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
+// Força essa rota a ser dinâmica (não pode ser gerada como página estática).
+export const dynamic = "force-dynamic";
+
 // Rota chamada 1x por dia pelo Vercel Cron (ver vercel.json).
 // Garante que, mesmo sem webhook, ninguém fique VIP vencido.
 export async function GET(req: NextRequest) {
