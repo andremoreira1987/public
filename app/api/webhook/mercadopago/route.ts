@@ -38,7 +38,12 @@ export async function POST(req: NextRequest) {
     const tipo = corpo.type || corpo.topic;
     const id = corpo.data?.id || corpo.resource;
 
+    // LOG DE DEBUG — ver no painel da Vercel (Deployments > Functions > Logs)
+    console.log("🔔 Webhook recebido:", JSON.stringify(corpo));
+    console.log("👉 tipo:", tipo, "| id:", id);
+
     if (!tipo || !id) {
+      console.log("⚠️ Notificação sem tipo/id — ignorada");
       // Mercado Pago às vezes manda pings de teste sem dados — só confirma recebimento
       return NextResponse.json({ ok: true });
     }
@@ -49,13 +54,21 @@ export async function POST(req: NextRequest) {
         headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
       });
       const preapproval = await resp.json();
+      console.log("📄 preapproval:", JSON.stringify(preapproval));
 
       const [usuarioId, plano] = String(preapproval.external_reference || "").split("|");
-      if (!usuarioId || !plano) return NextResponse.json({ ok: true });
+      console.log("👤 usuarioId:", usuarioId, "| plano:", plano, "| status:", preapproval.status);
+
+      if (!usuarioId || !plano) {
+        console.log("⚠️ external_reference vazio ou mal formatado — ignorado");
+        return NextResponse.json({ ok: true });
+      }
 
       if (preapproval.status === "authorized") {
+        console.log("✅ Liberando VIP para", usuarioId);
         await liberarVip(usuarioId, plano);
       } else if (["cancelled", "paused"].includes(preapproval.status)) {
+        console.log("🚫 Bloqueando VIP para", usuarioId);
         await bloquearVip(usuarioId);
       }
     }
@@ -66,13 +79,21 @@ export async function POST(req: NextRequest) {
         headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
       });
       const pagamento = await resp.json();
+      console.log("💳 pagamento:", JSON.stringify(pagamento));
 
       const [usuarioId, plano] = String(pagamento.external_reference || "").split("|");
-      if (!usuarioId || !plano) return NextResponse.json({ ok: true });
+      console.log("👤 usuarioId:", usuarioId, "| plano:", plano, "| status:", pagamento.status);
+
+      if (!usuarioId || !plano) {
+        console.log("⚠️ external_reference vazio ou mal formatado — ignorado");
+        return NextResponse.json({ ok: true });
+      }
 
       if (pagamento.status === "approved") {
+        console.log("✅ Liberando VIP para", usuarioId);
         await liberarVip(usuarioId, plano);
       } else if (["rejected", "cancelled"].includes(pagamento.status)) {
+        console.log("🚫 Bloqueando VIP para", usuarioId);
         await bloquearVip(usuarioId);
       }
     }
