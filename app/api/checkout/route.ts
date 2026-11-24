@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
         reason: config.nome,
         external_reference: `${usuarioId}|${plano}`, // usado no webhook pra saber quem e qual plano
         payer_email: usuario.email,
-        back_url: "https://seu-app.vercel.app/perfil", // troque pela URL real do app
+        back_url: "https://vixe-maria-djs3rn5ya-andremoreiraoespartano.vercel.app/perfil",
         auto_recurring: {
           frequency: config.meses,
           frequency_type: "months",
