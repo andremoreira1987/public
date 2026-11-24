@@ -31,6 +31,7 @@ export default function Iniciante() {
   const [aulas, setAulas] = useState<Aula[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [aulaAberta, setAulaAberta] = useState<Aula | null>(null);
+  const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
     if (!carregandoUsuario && !usuario) {
@@ -38,50 +39,97 @@ export default function Iniciante() {
     }
   }, [carregandoUsuario, usuario, router]);
 
-  useEffect(() => {
-    async function buscarAulas() {
-      if (!usuario?.id) return;
+  async function buscarAulas() {
+    if (!usuario?.id) return;
 
-      const { data: aulasData, error } = await supabase
-        .from("aulas")
-        .select("*")
-        .eq("nivel", "iniciante")
-        .eq("ritmo", "Forró")
-        .order("id", { ascending: true });
+    const { data: aulasData, error } = await supabase
+      .from("aulas")
+      .select("*")
+      .eq("nivel", "iniciante")
+      .eq("ritmo", "Forró")
+      .order("id", { ascending: true });
 
-      if (error) {
-        console.error("Erro ao buscar aulas:", error.message);
-        setCarregando(false);
-        return;
-      }
-
-      const idsAulas = (aulasData || []).map((a) => a.id);
-
-      let progressoMap: Record<number, number> = {};
-      if (idsAulas.length > 0) {
-        const { data: progressoData } = await supabase
-          .from("progresso")
-          .select("aula_id, percentual")
-          .eq("usuario_id", usuario.id)
-          .in("aula_id", idsAulas);
-
-        progressoMap = (progressoData || []).reduce((acc, p) => {
-          acc[p.aula_id] = p.percentual;
-          return acc;
-        }, {} as Record<number, number>);
-      }
-
-      const aulasComProgresso = (aulasData || []).map((a) => ({
-        ...a,
-        progresso: progressoMap[a.id] ?? 0,
-      }));
-
-      setAulas(aulasComProgresso as Aula[]);
+    if (error) {
+      console.error("Erro ao buscar aulas:", error.message);
       setCarregando(false);
+      return;
     }
 
+    const idsAulas = (aulasData || []).map((a) => a.id);
+
+    let progressoMap: Record<number, number> = {};
+    if (idsAulas.length > 0) {
+      const { data: progressoData } = await supabase
+        .from("progresso")
+        .select("aula_id, percentual")
+        .eq("usuario_id", usuario.id)
+        .in("aula_id", idsAulas);
+
+      progressoMap = (progressoData || []).reduce((acc, p) => {
+        acc[p.aula_id] = p.percentual;
+        return acc;
+      }, {} as Record<number, number>);
+    }
+
+    const aulasComProgresso = (aulasData || []).map((a) => ({
+      ...a,
+      progresso: progressoMap[a.id] ?? 0,
+    }));
+
+    setAulas(aulasComProgresso as Aula[]);
+    setCarregando(false);
+  }
+
+  useEffect(() => {
     buscarAulas();
   }, [usuario]);
+
+  // Salva (ou atualiza) o percentual de progresso da aula no Supabase
+  async function salvarProgresso(aulaId: number, percentual: number) {
+    if (!usuario?.id) return;
+    setSalvando(true);
+
+    // Verifica se já existe um registro de progresso para essa aula/usuário
+    const { data: existente } = await supabase
+      .from("progresso")
+      .select("id")
+      .eq("usuario_id", usuario.id)
+      .eq("aula_id", aulaId)
+      .maybeSingle();
+
+    if (existente) {
+      await supabase
+        .from("progresso")
+        .update({ percentual })
+        .eq("id", existente.id);
+    } else {
+      await supabase
+        .from("progresso")
+        .insert({ usuario_id: usuario.id, aula_id: aulaId, percentual });
+    }
+
+    setSalvando(false);
+
+    // Atualiza o estado local na hora, sem precisar recarregar a página
+    setAulas((prev) =>
+      prev.map((a) => (a.id === aulaId ? { ...a, progresso: percentual } : a))
+    );
+  }
+
+  // Chamado quando o vídeo de arquivo direto (<video>) termina sozinho
+  function handleVideoTerminou() {
+    if (aulaAberta) {
+      salvarProgresso(aulaAberta.id, 100);
+    }
+  }
+
+  // Chamado pelo botão manual (necessário para vídeos do YouTube, que não
+  // disparam evento de término dentro do iframe sem a API oficial do YouTube)
+  function handleMarcarConcluida() {
+    if (aulaAberta) {
+      salvarProgresso(aulaAberta.id, 100);
+    }
+  }
 
   const getBadge = (progresso: number = 0) => {
     if (progresso === 100) return { texto: "CONCLUÍDO", cor: "#2E7D32" };
@@ -264,18 +312,35 @@ export default function Iniciante() {
                   src={aulaAberta.video_url || ""}
                   controls
                   autoPlay
+                  onEnded={handleVideoTerminou}
                   className="absolute top-0 left-0 w-full h-full"
                 />
               )}
             </div>
-            <div className="p-4 flex items-center justify-between">
-              <p className="text-white font-bold text-sm">{aulaAberta.titulo}</p>
-              <button
-                onClick={() => setAulaAberta(null)}
-                className="text-[#F6B40E] font-bold text-sm"
-              >
-                Fechar ✕
-              </button>
+            <div className="p-4 flex items-center justify-between gap-3">
+              <p className="text-white font-bold text-sm truncate">{aulaAberta.titulo}</p>
+
+              <div className="flex items-center gap-3 shrink-0">
+                {/* Botão manual: necessário para YouTube, pois o iframe não
+                    avisa o React quando o vídeo termina */}
+                {extrairIdYoutube(aulaAberta.video_url || "") && aulaAberta.progresso !== 100 && (
+                  <button
+                    onClick={handleMarcarConcluida}
+                    disabled={salvando}
+                    className="text-xs font-bold text-black px-3 py-1.5 rounded-full disabled:opacity-60"
+                    style={{ background: "#F6B40E" }}
+                  >
+                    {salvando ? "Salvando..." : "Marcar como concluída ✓"}
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setAulaAberta(null)}
+                  className="text-[#F6B40E] font-bold text-sm"
+                >
+                  Fechar ✕
+                </button>
+              </div>
             </div>
           </div>
         </div>

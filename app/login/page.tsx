@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -13,22 +14,43 @@ export default function Login() {
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
   const router = useRouter();
+  const { recarregarUsuario } = useAuth();
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setErro("");
     setCarregando(true);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password: senha,
+      });
 
-    if (error) {
-      setErro("E-mail ou senha incorretos.");
+      if (error) {
+        // DEBUG TEMPORÁRIO - remover depois de identificar o problema
+        alert("Erro Supabase: " + error.message);
+        setErro("E-mail ou senha incorretos.");
+        setCarregando(false);
+        return;
+      }
+
+      const sucesso = await recarregarUsuario();
+
+      if (!sucesso) {
+        setErro("Erro ao carregar perfil. Tente novamente.");
+        setCarregando(false);
+        return;
+      }
+
+      router.refresh();
+      router.push("/");
+    } catch (err: any) {
+      // DEBUG TEMPORÁRIO - remover depois de identificar o problema
+      alert("Falha de conexão: " + (err?.message || String(err)));
+      setErro("Erro de conexão. Verifique sua internet.");
       setCarregando(false);
-      return;
     }
-
-    router.refresh();
-    router.push("/");
   }
 
   return (

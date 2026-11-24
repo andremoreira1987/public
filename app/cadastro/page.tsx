@@ -20,27 +20,21 @@ export default function Cadastro() {
     setErro("");
     setCarregando(true);
 
-    const { data, error } = await supabase.auth.signUp({ email, password: senha });
+    // O nome vai como metadata do Auth. O trigger no banco
+    // (handle_new_user) usa esse dado para criar a linha em "usuarios"
+    // automaticamente — não é mais necessário inserir manualmente aqui.
+    const { error } = await supabase.auth.signUp({
+      email,
+      password: senha,
+      options: {
+        data: { nome },
+      },
+    });
 
     if (error) {
       setErro(error.message);
       setCarregando(false);
       return;
-    }
-
-    if (data.user) {
-      const { error: erroInsert } = await supabase.from("usuarios").insert({
-        id: data.user.id,
-        nome,
-        email,
-        nivel_atual: "iniciante",
-        streak: 0,
-        plano: "free",
-      });
-
-      if (erroInsert) {
-        console.error("Erro ao salvar perfil:", erroInsert.message);
-      }
     }
 
     setCarregando(false);

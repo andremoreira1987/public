@@ -16,54 +16,84 @@ type Usuario = {
 type AuthContextType = {
   usuario: Usuario | null;
   carregando: boolean;
-  recarregarUsuario: () => Promise<void>;
+  recarregarUsuario: () => Promise<boolean>;
 };
 
 const AuthContext = createContext<AuthContextType>({
   usuario: null,
   carregando: true,
-  recarregarUsuario: async () => {},
+  recarregarUsuario: async () => false,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [carregando, setCarregando] = useState(true);
 
-  async function buscarPerfil(userId: string) {
-    const { data } = await supabase
+  async function buscarPerfil(userId: string): Promise<boolean> {
+    const { data, error } = await supabase
       .from("usuarios")
       .select("*")
       .eq("id", userId)
       .single();
 
-    if (data) setUsuario(data as Usuario);
+    if (error || !data) {
+      console.error("Erro ao buscar perfil:", error?.message);
+      return false;
+    }
+
+    setUsuario(data as Usuario);
+    return true;
   }
 
-  async function recarregarUsuario() {
+  async function recarregarUsuario(): Promise<boolean> {
     const { data: sessao } = await supabase.auth.getSession();
     if (sessao.session?.user) {
-      await buscarPerfil(sessao.session.user.id);
+      // Tenta algumas vezes, pois pode haver delay de propagação
+      // da sessão recém-criada até o RLS liberar a leitura.
+      let sucesso = false;
+      for (let tentativa = 0; tentativa < 3 && !sucesso; tentativa++) {
+        sucesso = await buscarPerfil(sessao.session.user.id);
+        if (!sucesso) {
+          await new Promise((r) => setTimeout(r, 400));
+        }
+      }
+      return sucesso;
     }
+    return false;
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session?.user) {
-        buscarPerfil(data.session.user.id).finally(() => setCarregando(false));
-      } else {
-        setCarregando(false);
-      }
-    });
+    let ativo = true;
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    async function inicializar() {
+      const { data } = await supabase.auth.getSession();
+      if (!ativo) return;
+
+      if (data.session?.user) {
+        await buscarPerfil(data.session.user.id);
+      }
+
+      if (ativo) setCarregando(false);
+    }
+
+    inicializar();
+
+    // Escuta mudanças de login/logout
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!ativo) return;
+
       if (session?.user) {
-        buscarPerfil(session.user.id);
+        await buscarPerfil(session.user.id);
       } else {
         setUsuario(null);
       }
+      setCarregando(false);
     });
 
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      ativo = false;
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   return (

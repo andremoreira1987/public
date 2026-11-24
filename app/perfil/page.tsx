@@ -62,7 +62,16 @@ export default function Perfil() {
         return;
       }
 
-      const idsAulas = progressoData.map((p) => p.aula_id);
+      const idsAulas = progressoData
+        .map((p) => p.aula_id)
+        .filter((id): id is number => id !== null);
+
+      if (idsAulas.length === 0) {
+        setAulas([]);
+        setCarregandoAulas(false);
+        return;
+      }
+
       const { data: aulasData, error: erroAulas } = await supabase
         .from("aulas")
         .select("id, titulo")
