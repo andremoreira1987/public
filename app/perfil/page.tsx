@@ -226,7 +226,7 @@ export default function Perfil() {
           )}
           {tipoPlanoLabel && (
             <span className="bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-full">
-              Plano {tipoPlanoLabel}
+              {tipoPlanoLabel}
             </span>
           )}
         </div>
@@ -288,7 +288,7 @@ export default function Perfil() {
               <span className="text-4xl">{c.icone}</span>
               <p className="text-xs text-gray-300 leading-snug">{c.titulo}</p>
               {!c.desbloqueada && (
-                <span className="text-[10px] text-gray-500 uppercase tracking-wide">
+                <span className="text-[10px] text-gray-300 uppercase tracking-wide">
                   Bloqueada
                 </span>
               )}
