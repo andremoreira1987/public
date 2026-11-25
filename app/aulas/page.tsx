@@ -13,6 +13,7 @@ export default function Aulas() {
   const [fotoErro, setFotoErro] = useState(false);
   const foto = !fotoErro && usuario?.foto_perfil ? usuario.foto_perfil : "/perfil-padrao.png";
   const ritmos = ["Forró"];
+  const ehVip = usuario?.plano === "vip";
 
   const [niveis, setNiveis] = useState({
     iniciante: { total: 0, completas: 0, progresso: 0 },
@@ -170,9 +171,21 @@ export default function Aulas() {
           </div>
         </div>
 
+        {ehVip && (
+          <div
+            className="rounded-xl p-3 mb-5 text-center shadow-lg flex items-center justify-center gap-2"
+            style={{ background: "linear-gradient(135deg, #F6B40E 0%, #FBD15B 100%)" }}
+          >
+            <span className="text-lg">⭐</span>
+            <p className="text-black font-bold text-sm">
+              Plano VIP ativo — todos os níveis liberados!
+            </p>
+          </div>
+        )}
+
         <h3 className="text-sm font-bold text-black mb-3">🕺 Níveis de Forró</h3>
 
-        {/* Nível Iniciante - desbloqueado */}
+        {/* Nível Iniciante - sempre desbloqueado */}
         <Link href="/aulas/iniciante">
           <div className="rounded-2xl shadow-xl mb-4 overflow-hidden active:scale-[0.97] transition relative">
             {/* Badge de status */}
@@ -216,43 +229,117 @@ export default function Aulas() {
           </div>
         </Link>
 
-        {/* Nível Intermediário - bloqueado */}
-        <div className="rounded-2xl shadow-lg mb-4 overflow-hidden bg-zinc-800/90 relative">
-          <span className="absolute top-2 left-2 z-10 text-[10px] font-bold text-white px-2 py-1 rounded-full tracking-wide bg-zinc-600">
-            BLOQUEADO
-          </span>
-          <div className="h-28 flex items-center justify-center bg-black/30">
-            <span className="text-3xl">🔒</span>
-          </div>
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-1">
-              <p className="font-bold text-white">🟡 INTERMEDIÁRIO</p>
-              <span className="text-xs text-gray-400">{niveis.intermediario.total} aulas</span>
+        {/* Nível Intermediário - liberado para VIP, bloqueado para Free */}
+        {ehVip ? (
+          <Link href="/aulas/intermediario">
+            <div className="rounded-2xl shadow-xl mb-4 overflow-hidden active:scale-[0.97] transition relative">
+              <span
+                className="absolute top-2 left-2 z-10 text-[10px] font-bold text-white px-2 py-1 rounded-full tracking-wide"
+                style={{ backgroundColor: "#F6B40E" }}
+              >
+                VIP LIBERADO
+              </span>
+              <div
+                className="h-28 flex items-center justify-center relative"
+                style={{ background: "linear-gradient(135deg, #C8102E 0%, #4A0E0E 60%, #1A1A1A 100%)" }}
+              >
+                <div className="bg-white/20 rounded-full p-4 backdrop-blur-sm">
+                  <span className="text-white text-3xl">▶️</span>
+                </div>
+              </div>
+              <div className="bg-black p-4">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="font-bold text-white">🟡 INTERMEDIÁRIO</p>
+                  <span className="text-xs font-bold text-[#F6B40E]">
+                    {niveis.intermediario.total} aulas
+                  </span>
+                </div>
+                <p className="text-sm text-gray-400">Liberado pelo seu plano VIP</p>
+              </div>
             </div>
-            <p className="text-sm text-gray-400">
-              Desbloqueie completando o nível Iniciante
-            </p>
+          </Link>
+        ) : (
+          <div className="rounded-2xl shadow-lg mb-4 overflow-hidden bg-zinc-800/90 relative">
+            <span className="absolute top-2 left-2 z-10 text-[10px] font-bold text-white px-2 py-1 rounded-full tracking-wide bg-zinc-600">
+              VIP
+            </span>
+            <div className="h-28 flex items-center justify-center bg-black/30">
+              <span className="text-3xl">🔒</span>
+            </div>
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-1">
+                <p className="font-bold text-white">🟡 INTERMEDIÁRIO</p>
+                <span className="text-xs text-gray-400">{niveis.intermediario.total} aulas</span>
+              </div>
+              <p className="text-sm text-gray-400 mb-3">
+                Disponível apenas para assinantes VIP
+              </p>
+              <Link
+                href="/planos"
+                className="block text-center text-xs font-bold text-black py-2 rounded-lg"
+                style={{ background: "#F6B40E" }}
+              >
+                Assinar VIP
+              </Link>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Nível Avançado - bloqueado */}
-        <div className="rounded-2xl shadow-lg mb-5 overflow-hidden bg-zinc-800/90 relative">
-          <span className="absolute top-2 left-2 z-10 text-[10px] font-bold text-white px-2 py-1 rounded-full tracking-wide bg-zinc-600">
-            BLOQUEADO
-          </span>
-          <div className="h-28 flex items-center justify-center bg-black/30">
-            <span className="text-3xl">🔒</span>
-          </div>
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-1">
-              <p className="font-bold text-white">🔴 AVANÇADO</p>
-              <span className="text-xs text-gray-400">{niveis.avancado.total} aulas</span>
+        {/* Nível Avançado - liberado para VIP, bloqueado para Free */}
+        {ehVip ? (
+          <Link href="/aulas/avancado">
+            <div className="rounded-2xl shadow-xl mb-5 overflow-hidden active:scale-[0.97] transition relative">
+              <span
+                className="absolute top-2 left-2 z-10 text-[10px] font-bold text-white px-2 py-1 rounded-full tracking-wide"
+                style={{ backgroundColor: "#F6B40E" }}
+              >
+                VIP LIBERADO
+              </span>
+              <div
+                className="h-28 flex items-center justify-center relative"
+                style={{ background: "linear-gradient(135deg, #C8102E 0%, #4A0E0E 60%, #1A1A1A 100%)" }}
+              >
+                <div className="bg-white/20 rounded-full p-4 backdrop-blur-sm">
+                  <span className="text-white text-3xl">▶️</span>
+                </div>
+              </div>
+              <div className="bg-black p-4">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="font-bold text-white">🔴 AVANÇADO</p>
+                  <span className="text-xs font-bold text-[#F6B40E]">
+                    {niveis.avancado.total} aulas
+                  </span>
+                </div>
+                <p className="text-sm text-gray-400">Liberado pelo seu plano VIP</p>
+              </div>
             </div>
-            <p className="text-sm text-gray-400">
-              Desbloqueie completando o nível Intermediário
-            </p>
+          </Link>
+        ) : (
+          <div className="rounded-2xl shadow-lg mb-5 overflow-hidden bg-zinc-800/90 relative">
+            <span className="absolute top-2 left-2 z-10 text-[10px] font-bold text-white px-2 py-1 rounded-full tracking-wide bg-zinc-600">
+              VIP
+            </span>
+            <div className="h-28 flex items-center justify-center bg-black/30">
+              <span className="text-3xl">🔒</span>
+            </div>
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-1">
+                <p className="font-bold text-white">🔴 AVANÇADO</p>
+                <span className="text-xs text-gray-400">{niveis.avancado.total} aulas</span>
+              </div>
+              <p className="text-sm text-gray-400 mb-3">
+                Disponível apenas para assinantes VIP
+              </p>
+              <Link
+                href="/planos"
+                className="block text-center text-xs font-bold text-black py-2 rounded-lg"
+                style={{ background: "#F6B40E" }}
+              >
+                Assinar VIP
+              </Link>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Card motivacional */}
         <div
@@ -261,7 +348,9 @@ export default function Aulas() {
         >
           <p className="text-white font-bold text-sm">🎉 Você está indo bem!</p>
           <p className="text-gray-300 text-xs mt-1">
-            Complete mais {niveis.iniciante.total - niveis.iniciante.completas} aulas para liberar o próximo nível
+            {ehVip
+              ? "Continue praticando em todos os níveis!"
+              : `Complete mais ${niveis.iniciante.total - niveis.iniciante.completas} aulas ou assine o VIP para liberar todos os níveis`}
           </p>
         </div>
       </div>

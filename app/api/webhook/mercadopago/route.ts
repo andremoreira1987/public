@@ -1,5 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHmac } from "crypto";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+
+// Valida a assinatura enviada pelo Mercado Pago no header "x-signature".
+// Garante que a notificação realmente veio do Mercado Pago e não de terceiros.
+function validarAssinatura(req: NextRequest, id: string): boolean {
+  const secret = process.env.MP_WEBHOOK_SECRET;
+  if (!secret) {
+    console.log("⚠️ MP_WEBHOOK_SECRET não configurada — pulando validação");
+    return true; // evita travar tudo caso a env ainda não tenha sido configurada
+  }
+
+  const xSignature = req.headers.get("x-signature");
+  const xRequestId = req.headers.get("x-request-id");
+
+  if (!xSignature || !xRequestId) {
+    console.log("⚠️ Headers de assinatura ausentes");
+    return false;
+  }
+
+  // Formato do header: "ts=1234567890,v1=abcdef..."
+  const partes = xSignature.split(",").reduce((acc: Record<string, string>, parte) => {
+    const [chave, valor] = parte.split("=");
+    if (chave && valor) acc[chave.trim()] = valor.trim();
+    return acc;
+  }, {});
+
+  const ts = partes["ts"];
+  const v1 = partes["v1"];
+  if (!ts || !v1) {
+    console.log("⚠️ Formato inválido em x-signature");
+    return false;
+  }
+
+  // Manifest conforme documentação oficial do Mercado Pago
+  const manifest = `id:${id};request-id:${xRequestId};ts:${ts};`;
+  const hashCalculado = createHmac("sha256", secret).update(manifest).digest("hex");
+
+  const valido = hashCalculado === v1;
+  if (!valido) {
+    console.log("🚫 Assinatura inválida — manifest:", manifest);
+  }
+  return valido;
+}
 
 const MESES_POR_PLANO: Record<string, number> = {
   "vip-mensal": 1,
