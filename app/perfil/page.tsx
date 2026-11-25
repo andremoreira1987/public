@@ -136,11 +136,17 @@ export default function Perfil() {
   const nome = usuario?.nome || "Visitante";
   const email = usuario?.email || "—";
   const plano = usuario?.plano === "vip" ? "vip" : "free";
-  const nivel = usuario?.nivel_atual
-    ? usuario.nivel_atual.charAt(0).toUpperCase() + usuario.nivel_atual.slice(1)
-    : "Iniciante";
+  const tiposPlano: Record<string, string> = {
+    mensal: "Mensal",
+    semestral: "Semestral",
+    anual: "Anual",
+  };
+  const tipoPlanoLabel =
+    plano === "vip"
+      ? tiposPlano[(usuario as any)?.tipo_plano] || "Mensal"
+      : null;
   const streak = usuario?.streak ?? 0;
-  const fotoAtual = fotoPreview || "/perfil-padrao.png";
+  const fotoAtual = fotoPreview || null;
 
   const totalCompletas = aulas.filter((a) => a.progresso === 100).length;
 
@@ -178,14 +184,20 @@ export default function Perfil() {
 
       {/* Card principal do perfil */}
       <div className="relative bg-gradient-to-br from-[#C8102E]/20 to-[#F6B40E]/10 border border-[#F6B40E]/30 rounded-3xl p-8 flex flex-col items-center text-center mb-10 shadow-xl shadow-black/40">
-        <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-[#F6B40E] shadow-[0_0_25px_rgba(246,180,14,0.35)] mb-5">
-          <Image
-            src={fotoAtual}
-            alt="Foto de perfil"
-            fill
-            className="object-cover"
-            onError={() => setFotoPreview("/perfil-padrao.png")}
-          />
+        <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-[#F6B40E] shadow-[0_0_25px_rgba(246,180,14,0.35)] mb-5 flex items-center justify-center bg-zinc-900">
+          {fotoAtual ? (
+            <Image
+              src={fotoAtual}
+              alt="Foto de perfil"
+              fill
+              className="object-cover"
+              onError={() => setFotoPreview(null)}
+            />
+          ) : (
+            <span className="text-xs text-gray-400 text-center px-4 leading-tight">
+              Foto de perfil
+            </span>
+          )}
         </div>
 
         <label className="text-sm text-[#F6B40E] cursor-pointer font-semibold hover:underline">
@@ -212,9 +224,11 @@ export default function Perfil() {
               Plano Gratuito
             </span>
           )}
-          <span className="bg-[#F6B40E] text-black text-xs font-bold px-3 py-1.5 rounded-full">
-            {nivel}
-          </span>
+          {tipoPlanoLabel && (
+            <span className="bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-full">
+              Plano {tipoPlanoLabel}
+            </span>
+          )}
         </div>
 
         {plano === "free" && (
