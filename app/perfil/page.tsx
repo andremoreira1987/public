@@ -149,6 +149,11 @@ export default function Perfil() {
   const fotoAtual = fotoPreview || null;
 
   const totalCompletas = aulas.filter((a) => a.progresso === 100).length;
+  const emAndamento = aulas.filter((a) => a.progresso > 0 && a.progresso < 100);
+  // Ordena as em andamento pelas mais recentes (maior id = mais recente nesse schema)
+  const ultimasEmAndamento = [...emAndamento]
+    .sort((a, b) => b.id - a.id)
+    .slice(0, 3);
 
   const conquistas: Conquista[] = [
     {
@@ -297,10 +302,10 @@ export default function Perfil() {
         </div>
       </div>
 
-      {/* Minhas aulas */}
-      <div>
+      {/* Progresso geral */}
+      <div className="mb-6">
         <h2 className="text-sm font-semibold text-gray-400 mb-4 uppercase tracking-wide">
-          Minhas Aulas
+          Progresso
         </h2>
 
         {carregandoAulas && (
@@ -313,26 +318,64 @@ export default function Perfil() {
           </p>
         )}
 
-        <div className="space-y-4">
-          {aulas.map((aula) => (
-            <div
-              key={aula.id}
-              className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-md shadow-black/20"
-            >
-              <div className="flex justify-between mb-3">
-                <p className="text-sm font-semibold">{aula.titulo}</p>
-                <p className="text-sm text-[#F6B40E] font-bold">{aula.progresso}%</p>
-              </div>
-              <div className="w-full bg-zinc-800 rounded-full h-2">
-                <div
-                  className="h-2 rounded-full bg-gradient-to-r from-[#F6B40E] to-[#C8102E]"
-                  style={{ width: `${aula.progresso}%` }}
-                />
-              </div>
+        {!carregandoAulas && aulas.length > 0 && (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-md shadow-black/20 flex items-center justify-between">
+            <div>
+              <p className="text-2xl font-extrabold text-[#F6B40E]">{totalCompletas}</p>
+              <p className="text-xs text-gray-400">Aulas concluídas</p>
             </div>
-          ))}
-        </div>
+            <div className="h-10 w-px bg-zinc-800" />
+            <div>
+              <p className="text-2xl font-extrabold text-white">{emAndamento.length}</p>
+              <p className="text-xs text-gray-400">Em andamento</p>
+            </div>
+            <div className="h-10 w-px bg-zinc-800" />
+            <div>
+              <p className="text-2xl font-extrabold text-white">{aulas.length}</p>
+              <p className="text-xs text-gray-400">Total iniciadas</p>
+            </div>
+          </div>
+        )}
+      </div>
 
+      {/* Continuar de onde parou */}
+      {ultimasEmAndamento.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-400 mb-4 uppercase tracking-wide">
+            Continuar de onde parou
+          </h2>
+          <div className="space-y-4">
+            {ultimasEmAndamento.map((aula) => (
+              <div
+                key={aula.id}
+                className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-md shadow-black/20"
+              >
+                <div className="flex justify-between mb-3">
+                  <p className="text-sm font-semibold">{aula.titulo}</p>
+                  <p className="text-sm text-[#F6B40E] font-bold">{aula.progresso}%</p>
+                </div>
+                <div className="w-full bg-zinc-800 rounded-full h-2">
+                  <div
+                    className="h-2 rounded-full bg-gradient-to-r from-[#F6B40E] to-[#C8102E]"
+                    style={{ width: `${aula.progresso}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!carregandoAulas && aulas.length > 0 && (
+        <Link
+          href="/aulas"
+          className="w-full block text-center mb-8 py-3 rounded-xl border border-[#F6B40E]/40 text-[#F6B40E] font-bold hover:bg-[#F6B40E]/10 transition-colors"
+        >
+          Ver todo o progresso
+        </Link>
+      )}
+
+      <div>
         <button
           onClick={handleSair}
           className="w-full mt-8 py-3 rounded-xl border border-red-600 text-red-500 font-bold hover:bg-red-600/10 transition-colors"
