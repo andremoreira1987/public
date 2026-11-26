@@ -97,6 +97,20 @@ export default function Home() {
   const streak = usuario?.streak ?? 0;
   const ritmos = ["Forró"]; // apenas Forró disponível
 
+  // Saudação dinâmica de acordo com o horário do usuário
+  function saudacaoPorHorario(): string {
+    const hora = new Date().getHours();
+    if (hora < 12) return "Bom dia";
+    if (hora < 18) return "Boa tarde";
+    return "Boa noite";
+  }
+
+  // Trata plural corretamente (1 dia vs 2 dias)
+  const streakLabel = `${streak} dia${streak === 1 ? "" : "s"} seguido${streak === 1 ? "" : "s"}!`;
+
+  // Próxima aula a continuar: a primeira não concluída, ou a primeira da lista
+  const proximaAula = aulas.find((a) => a.progresso < 100) || aulas[0];
+
   const getBadge = (progresso: number) => {
     if (progresso === 0) return { texto: "NOVO", cor: "#C8102E" };
     if (progresso < 100) return { texto: "EM ANDAMENTO", cor: "#F6B40E" };
@@ -156,11 +170,22 @@ export default function Home() {
       <div className="pt-20 p-4">
         {/* Saudação personalizada */}
         <h2 className="text-lg font-extrabold text-black mb-1">
-          Bom treino, {primeiroNome}! 💪
+          {saudacaoPorHorario()}, {primeiroNome}! 💃
         </h2>
         <p className="text-sm text-black/80 font-medium mb-4">
           Vamos evoluir mais um pouco no Forró hoje?
         </p>
+
+        {/* CTA principal - continuar treino */}
+        {!carregandoAulas && proximaAula && (
+          <button
+            onClick={() => setAulaAberta(proximaAula)}
+            className="w-full bg-black text-white font-bold text-sm rounded-xl py-3.5 mb-5 shadow-lg flex items-center justify-center gap-2 active:scale-[0.98] transition border-2 border-[#F6B40E]"
+          >
+            <span className="text-[#F6B40E] text-lg">▶</span>
+            {proximaAula.progresso > 0 ? "Continuar treino" : "Começar treino"}
+          </button>
+        )}
 
         {/* Card de streak */}
         <div className="flex items-center justify-between bg-black rounded-xl p-4 mb-5 shadow-lg">
@@ -168,7 +193,7 @@ export default function Home() {
             <span className="text-3xl">🔥</span>
             <div>
               <p className="text-xs text-gray-400">Sequência de prática</p>
-              <p className="text-lg font-bold text-[#F6B40E]">{streak} dias seguidos!</p>
+              <p className="text-lg font-bold text-[#F6B40E]">{streakLabel}</p>
             </div>
           </div>
           <span className="text-xs text-gray-500">Continue assim</span>
@@ -261,19 +286,34 @@ export default function Home() {
         })}
 
         {/* Card motivacional */}
-        {aulas.length > 0 && (
-          <div
-            className="rounded-xl p-4 mb-2 text-center shadow-lg"
-            style={{ background: "linear-gradient(135deg, #C8102E 0%, #1A1A1A 100%)" }}
-          >
-            <p className="text-white font-bold text-sm">
-              🎉 Você está quase lá!
-            </p>
-            <p className="text-gray-300 text-xs mt-1">
-              Complete mais {aulas.filter((a) => a.progresso < 100).length} aulas para fechar o módulo
-            </p>
-          </div>
-        )}
+        {aulas.length > 0 && (() => {
+          const concluidas = aulas.filter((a) => a.progresso === 100).length;
+          const total = aulas.length;
+          const faltam = total - concluidas;
+          const percentualModulo = Math.round((concluidas / total) * 100);
+
+          return (
+            <div
+              className="rounded-xl p-4 mb-2 text-center shadow-lg"
+              style={{ background: "linear-gradient(135deg, #F6B40E 0%, #C8102E 85%)" }}
+            >
+              <p className="text-white font-bold text-sm">
+                {faltam === 0 ? "🏆 Módulo concluído!" : "🎉 Você está quase lá!"}
+              </p>
+              <p className="text-black/80 text-xs mt-1 font-medium">
+                {faltam === 0
+                  ? "Parabéns por completar todas as aulas!"
+                  : `Complete mais ${faltam} aula${faltam === 1 ? "" : "s"} para fechar o módulo`}
+              </p>
+              <div className="w-full bg-black/30 rounded-full h-1.5 mt-3 overflow-hidden">
+                <div
+                  className="h-1.5 rounded-full bg-black transition-all"
+                  style={{ width: `${percentualModulo}%` }}
+                />
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Modal do player */}

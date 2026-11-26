@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Browser } from "@capacitor/browser";
 
 type Periodo = "mensal" | "semestral" | "anual";
 
@@ -42,7 +43,7 @@ const PLANOS: Record<
 };
 
 export default function Planos() {
-  const { usuario, carregando } = useAuth();
+  const { usuario, carregando, recarregarUsuario } = useAuth();
   const router = useRouter();
   const [redirecionando, setRedirecionando] = useState(false);
   const [periodo, setPeriodo] = useState<Periodo>("anual");
@@ -52,6 +53,25 @@ export default function Planos() {
       router.push("/login");
     }
   }, [carregando, usuario, router]);
+
+  // Escuta o fechamento do checkout aberto dentro do app (in-app browser).
+  // Assim, quando o usuário terminar de pagar (ou fechar) no Mercado Pago,
+  // a sessão do app continua ativa e o perfil é atualizado automaticamente.
+  useEffect(() => {
+    let listenerHandle: { remove: () => void } | undefined;
+
+    Browser.addListener("browserFinished", async () => {
+      setRedirecionando(false);
+      await recarregarUsuario();
+      router.push("/perfil");
+    }).then((handle) => {
+      listenerHandle = handle;
+    });
+
+    return () => {
+      listenerHandle?.remove();
+    };
+  }, [recarregarUsuario, router]);
 
   const planoAtual = usuario?.plano === "vip" ? "vip" : "free";
   const selecionado = PLANOS[periodo];
@@ -80,10 +100,11 @@ export default function Planos() {
         return;
       }
 
-      // Redireciona para o checkout real do Mercado Pago.
+      // Abre o checkout do Mercado Pago DENTRO do app (Chrome Custom Tab /
+      // SFSafariViewController), mantendo a sessão do Supabase intacta.
       // O webhook (app/api/webhook/mercadopago) atualiza
       // usuarios.plano = 'vip' quando o pagamento for confirmado.
-      window.location.href = dados.linkPagamento;
+      await Browser.open({ url: dados.linkPagamento });
     } catch (err) {
       setErro("Erro de conexão. Tente novamente.");
       setRedirecionando(false);
@@ -212,7 +233,7 @@ export default function Planos() {
               className="w-full py-3 rounded-lg font-bold text-black disabled:opacity-60"
               style={{ background: "#F6B40E" }}
             >
-              {redirecionando ? "Redirecionando..." : `Assinar VIP ${selecionado.label}`}
+              {redirecionando ? "Abrindo checkout..." : `Assinar VIP ${selecionado.label}`}
             </button>
           )}
         </div>
