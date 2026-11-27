@@ -6,6 +6,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Browser } from "@capacitor/browser";
 
+// URL fixa do backend na Vercel. Dentro do APK não existe caminho
+// relativo (/api/...), então toda chamada de API precisa ser absoluta.
+const API_BASE_URL = "https://vixe-maria.vercel.app";
+
 type Periodo = "mensal" | "semestral" | "anual";
 
 // Mapeia o período escolhido na tela para a chave de plano usada
@@ -83,7 +87,8 @@ export default function Planos() {
     setRedirecionando(true);
 
     try {
-      const resposta = await fetch("/api/checkout", {
+      // Chamada absoluta para a API na Vercel (funciona dentro do APK e no navegador).
+      const resposta = await fetch(`${API_BASE_URL}/api/checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

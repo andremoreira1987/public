@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "build:android": "node scripts/build-android.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.2",
