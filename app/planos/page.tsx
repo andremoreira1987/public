@@ -87,8 +87,10 @@ export default function Planos() {
     setRedirecionando(true);
 
     try {
-      // Chamada absoluta para a API na Vercel (funciona dentro do APK e no navegador).
-      const resposta = await fetch(`${API_BASE_URL}/api/checkout`, {
+      // IMPORTANTE: a barra final evita que a Vercel (trailingSlash: true)
+      // redirecione a chamada. Redirect em preflight OPTIONS é bloqueado
+      // pelo navegador como erro de CORS, mesmo com os headers corretos.
+      const resposta = await fetch(`${API_BASE_URL}/api/checkout/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
